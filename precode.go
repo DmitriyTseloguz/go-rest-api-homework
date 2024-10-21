@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -39,16 +40,24 @@ var tasks = map[string]Task{
 	},
 }
 
-// Ниже напишите обработчики для каждого эндпоинта
-// ...
+func getTasks(response http.ResponseWriter, request *http.Request) {
+	var jsonTasks, marshalError = json.Marshal(tasks)
+
+	if marshalError != nil {
+		http.Error(response, marshalError.Error(), http.StatusInternalServerError)
+	}
+
+	response.Header().Set("Content-type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	response.Write(jsonTasks)
+}
 
 func main() {
-	r := chi.NewRouter()
+	router := chi.NewRouter()
 
-	// здесь регистрируйте ваши обработчики
-	// ...
+	router.Get("/tasks", getTasks)
 
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	if err := http.ListenAndServe(":8080", router); err != nil {
 		fmt.Printf("Ошибка при запуске сервера: %s", err.Error())
 		return
 	}
