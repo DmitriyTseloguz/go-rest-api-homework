@@ -49,6 +49,8 @@ func main() {
 
 	router.Post("/tasks", createTasks)
 
+	router.Delete("/task/{id}", deleteTask)
+
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		fmt.Printf("Ошибка при запуске сервера: %s", err.Error())
 		return
@@ -66,6 +68,28 @@ func getTasks(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
 	response.Write(jsonTasks)
+}
+
+func getTask(response http.ResponseWriter, request *http.Request) {
+	var taskID = chi.URLParam(request, "id")
+
+	var task, isExist = tasks[taskID]
+
+	if !isExist {
+		http.Error(response, "There is no task with id "+taskID, http.StatusBadRequest)
+		return
+	}
+
+	var jsonTask, marshalError = json.Marshal(task)
+
+	if marshalError != nil {
+		http.Error(response, marshalError.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
+	response.Write(jsonTask)
 }
 
 func createTasks(response http.ResponseWriter, request *http.Request) {
@@ -89,27 +113,14 @@ func createTasks(response http.ResponseWriter, request *http.Request) {
 	tasks[task.ID] = task
 
 	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(http.StatusOK)
+	response.WriteHeader(http.StatusCreated)
 }
 
-func getTask(response http.ResponseWriter, request *http.Request) {
+func deleteTask(response http.ResponseWriter, request *http.Request) {
 	var taskID = chi.URLParam(request, "id")
 
-	var task, isExist = tasks[taskID]
-
-	if !isExist {
-		http.Error(response, "There is no task with id "+taskID, http.StatusBadRequest)
-		return
-	}
-
-	var jsonTask, marshalError = json.Marshal(task)
-
-	if marshalError != nil {
-		http.Error(response, marshalError.Error(), http.StatusBadRequest)
-		return
-	}
+	delete(tasks, taskID)
 
 	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
-	response.Write(jsonTask)
 }
