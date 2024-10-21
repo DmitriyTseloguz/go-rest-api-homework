@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Task ...
 type Task struct {
 	ID           string   `json:"id"`
 	Description  string   `json:"description"`
@@ -41,21 +41,48 @@ var tasks = map[string]Task{
 }
 
 func getTasks(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("get tasks")
 	var jsonTasks, marshalError = json.Marshal(tasks)
 
 	if marshalError != nil {
 		http.Error(response, marshalError.Error(), http.StatusInternalServerError)
 	}
 
-	response.Header().Set("Content-type", "application/json")
+	response.Header().Set("Content-Type", "application/json")
 	response.WriteHeader(http.StatusOK)
 	response.Write(jsonTasks)
+}
+
+func createTasks(response http.ResponseWriter, request *http.Request) {
+	var task Task
+	var buffer bytes.Buffer
+
+	var _, readError = buffer.ReadFrom(request.Body)
+
+	if readError != nil {
+		fmt.Println(readError)
+		http.Error(response, readError.Error(), http.StatusBadRequest)
+	}
+
+	var unmarshalError = json.Unmarshal(buffer.Bytes(), &task)
+
+	if unmarshalError != nil {
+		fmt.Println(unmarshalError)
+		http.Error(response, unmarshalError.Error(), http.StatusBadRequest)
+	}
+
+	tasks[task.ID] = task
+
+	response.Header().Set("Content-Type", "application/json")
+	response.WriteHeader(http.StatusOK)
 }
 
 func main() {
 	router := chi.NewRouter()
 
 	router.Get("/tasks", getTasks)
+
+	router.Post("/tasks", createTasks)
 
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		fmt.Printf("Ошибка при запуске сервера: %s", err.Error())
