@@ -119,6 +119,13 @@ func createTasks(response http.ResponseWriter, request *http.Request) {
 func deleteTask(response http.ResponseWriter, request *http.Request) {
 	var taskID = chi.URLParam(request, "id")
 
+	var _, isExist = tasks[taskID]
+
+	if !isExist {
+		http.Error(response, "There is no task with id "+taskID, http.StatusBadRequest)
+		return
+	}
+
 	delete(tasks, taskID)
 
 	response.Header().Set("Content-Type", "application/json")
